@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub PR Explorer</title>
+    <link rel="stylesheet" href="/static/explorer/style.css">
+</head>
+<body>
+{% csrf_token %}
+<div class="container">
+    <header class="topbar">
+        <div>
+            <h1>GitHub Pull Request Explorer</h1>
+            <p>Explore repository information and pull requests using the Mock GitHub API.</p>
+        </div>
+        <div class="nav-buttons">
+            <button class="nav-btn active" data-tab="explorer">PR Explorer</button>
+            <button class="nav-btn" data-tab="tester">API Tester</button>
+            <button class="nav-btn" data-tab="database">Database Query</button>
+        </div>
+    </header>
+
+    <main>
+        <section id="explorerTab" class="tab-panel active">
+            <div class="card">
+                <h2>Repository</h2>
+                <div class="grid three">
+                    <label>
+                        Owner
+                        <input id="owner" value="hora-hq" placeholder="e.g. hora-hq">
+                    </label>
+                    <label>
+                        Repository
+                        <input id="repo" value="core-api" placeholder="e.g. core-api">
+                    </label>
+                    <label>
+                        GitHub Token
+                        <input id="token" value="mock-token-123" placeholder="Mock token">
+                    </label>
+                </div>
+                <div class="actions">
+                    <button id="repoBtn">Fetch Repo Summary</button>
+                    <button id="pullsBtn">Fetch Pull Requests</button>
+                </div>
+                <div id="explorerLoading" class="loading hidden">Loading...</div>
+                <div id="explorerError" class="alert error hidden"></div>
+            </div>
+
+            <section id="repoCard" class="card hidden">
+                <div class="section-title-row">
+                    <h2>Repository Summary</h2>
+                </div>
+                <div class="summary-grid">
+                    <div><span>Repository</span><strong id="repoName">-</strong></div>
+                    <div><span>Description</span><strong id="repoDescription">-</strong></div>
+                    <div><span>Stars</span><strong id="repoStars">0</strong></div>
+                    <div><span>Forks</span><strong id="repoForks">0</strong></div>
+                    <div><span>Open Issues</span><strong id="repoIssues">0</strong></div>
+                </div>
+            </section>
+
+            <section id="filterCard" class="card hidden">
+                <div class="section-title-row">
+                    <h2>Dynamic Filters</h2>
+                    <div>
+                        <span id="totalCount" class="badge">0 PRs</span>
+                        <span id="openCount" class="badge">0 Open</span>
+                        <span id="closedCount" class="badge">0 Closed</span>
+                    </div>
+                </div>
+
+                <div id="filters"></div>
+
+                <div class="actions">
+                    <button id="addFilterBtn" class="secondary">+ Add Filter</button>
+                    <button id="applyFiltersBtn">Apply Filters</button>
+                    <button id="clearFiltersBtn" class="danger">Clear Filters</button>
+                </div>
+            </section>
+
+            <section id="pullsCard" class="card hidden">
+                <div class="section-title-row">
+                    <h2>Pull Requests</h2>
+                    <input id="tableSearch" class="small-input" placeholder="Search title/author...">
+                </div>
+
+                <div id="emptyState" class="empty hidden">No pull requests found.</div>
+
+                <div class="table-wrap">
+                    <table id="pullsTable">
+                        <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Status</th>
+                            <th>Repository</th>
+                            <th>Created</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+
+        <section id="testerTab" class="tab-panel">
+            <div class="card">
+                <h2>Postman-like API Tester</h2>
+                <div class="request-line">
+                    <select id="httpMethod">
+                        <option>GET</option>
+                        <option>POST</option>
+                        <option>PUT</option>
+                        <option>PATCH</option>
+                        <option>DELETE</option>
+                    </select>
+                    <input id="requestUrl" placeholder="Enter Mock API URL">
+                    <button id="sendRequestBtn">Send Request</button>
+                </div>
+
+                <div class="grid two">
+                    <div>
+                        <div class="section-title-row">
+                            <h3>Headers</h3>
+                            <button class="secondary small" id="addHeaderBtn">+ Add</button>
+                        </div>
+                        <div id="headersEditor"></div>
+                    </div>
+                    <div>
+                        <div class="section-title-row">
+                            <h3>Query Parameters</h3>
+                            <button class="secondary small" id="addParamBtn">+ Add</button>
+                        </div>
+                        <div id="paramsEditor"></div>
+                    </div>
+                </div>
+
+                <h3>JSON Request Body</h3>
+                <textarea id="requestBody" class="code-box" placeholder='{"example": "value"}'></textarea>
+
+                <div id="testerLoading" class="loading hidden">Sending request...</div>
+                <div id="testerError" class="alert error hidden"></div>
+
+                <div class="response-panel">
+                    <div class="response-meta">
+                        <strong>Response</strong>
+                        <span id="responseStatus">-</span>
+                        <span id="responseTime">-</span>
+                    </div>
+                    <pre id="responseBody">{}</pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="databaseTab" class="tab-panel">
+            <div class="card">
+                <h2>Database Query Interface</h2>
+                <p class="hint">API requests are stored in <code>explorer_apilog</code>.</p>
+
+                <textarea id="sqlQuery" class="code-box tall">SELECT id, method, url, status_code, response_time_ms, success, created_at
+FROM explorer_apilog
+ORDER BY created_at DESC;</textarea>
+
+                <div class="actions">
+                    <button id="runQueryBtn">Execute Query</button>
+                    <button id="failedQueryBtn" class="secondary">Show Failed / Slow</button>
+                </div>
+
+                <div id="queryError" class="alert error hidden"></div>
+
+                <div id="queryResultMeta" class="hint"></div>
+                <div class="table-wrap">
+                    <table id="queryTable">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="/static/explorer/app.js"></script>
+</body>
+</html>
